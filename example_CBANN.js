@@ -30,8 +30,14 @@ const xq = [2];
 // (1) Related to training data:
 // Random perturbation tolerance
 const pTol = 0.0;
+// Aspect ratio
+const ar = 1000;
 // Scaling factor
-const scF = 1000;
+let maxX=Math.max(...x.map(value => value[0]));
+let minX=Math.min(...x.map(value => value[0]));
+let maxY=Math.max(...y.map(value => value[0]));
+let minY=Math.min(...y.map(value => value[0]));
+let scF = ar*(maxX-minX)/(maxY-minY);
 // Validation ratio
 const tr = 0.1;
 // (2) Related to CBANN:
@@ -47,7 +53,7 @@ const nVar = x[0].length;
 let C = math.dotMultiply(x, math.add(1, math.dotMultiply(pTol, 
     math.random([x.length, nVar], 0, 1))));
 let C0 = C;
-let C1 = math.concat(C, math.dotMultiply(scF, y), 1);
+let C1 = math.concat(C, math.dotMultiply(scF, math.subtract(y, minY)), 1);
 
 // Step 1.2: Cluster Boosting (CB)
 // Function clusterData
@@ -76,7 +82,7 @@ for (let i = 0; i < nCl.length; i++) {
     cInd.push(cInd_i); 
     C = math.concat(C, cInd_i, 1);
 }
-C = math.concat(C, math.dotMultiply(scF, y), 1);
+C = math.concat(C, math.dotMultiply(scF, math.subtract(y, minY)), 1);
 
 // Step 2.1: Divide dataset into training and validation
 // Function shuffleArray
@@ -118,7 +124,7 @@ model.add(tf.layers.dense({ units: H, activation: 'sigmoid',
     inputShape: [X_T[0].length] })); 
 // Output layer with linear activation
 model.add(tf.layers.dense({ units: 1, activation: 'linear' })); 
-const adam = tf.train.adam(0.01);
+const adam = tf.train.adam(0.02);
 model.compile({ optimizer: adam, loss: 'meanSquaredError' });
 // Print model summary
 model.summary();
@@ -162,7 +168,7 @@ model.fit(X_T_tensor, y_T_tensor, {
 console.log("Training complete");
 // Prediction results
 const pVal0 = model.predict(pFeat_tensor);
-const pVal = 1/scF * pVal0.dataSync()[0];
+const pVal = minY + 1/scF * pVal0.dataSync()[0];
 console.log("Input value: ", pFeat);
 console.log("Prediction: ", pVal);
 console.log("True value: ", (Math.sin(xq)+1)/2);

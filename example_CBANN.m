@@ -12,8 +12,10 @@ xq=2;
 % (1) Related to training data:
 % Random perturbation tolerance
 pTol=0;
+% Aspect ratio
+ar=1000;
 % Scaling factor
-scF=1000;
+scF=ar*(max(x(:))-min(x(:)))/(max(y)-min(y));
 % Validation ratio
 tr=0.1;
 % (2) Related to CBANN:
@@ -28,7 +30,7 @@ max_Epochs=2000;
 nVar=size(x,2);
 C=x.*(1+pTol*rand(size(x)));
 C0=C;
-C1=[C,scF*y];
+C1=[C,scF*(y-min(y))];
 
 % Step 1.2: Cluster Boosting (CB)
 cInd=cell(numel(nCl),1);
@@ -41,7 +43,7 @@ for i=1:numel(nCl)
         'Options',opts);
     C=[C,cInd{i}];
 end
-C=[C,scF*y];
+C=[C,scF*(y-min(y))];
 
 % Step 2.1: Divide dataset into training and validation
 n=size(C,1);
@@ -73,7 +75,7 @@ options = trainingOptions('adam' ...
     ,'MaxEpochs', max_Epochs ...
     ,'MiniBatchSize', 128 ...
     ,'Verbose', true ...
-    ,'InitialLearnRate', 0.01 ...
+    ,'InitialLearnRate', 0.02 ...
     ,'Shuffle', 'every-epoch' ...
     ,'ValidationData', {X_V, y_V} ...
     ,'ResetInputNormalization',0);
@@ -97,7 +99,7 @@ end
 pFeat=[xq,ind_d];
 
 % Step 4: Make prediction on xq
-pVal = 1/scF*predict(net, pFeat);
+pVal = min(y)+1/scF*predict(net, pFeat);
 % Display output
 disp(['Input value: ', num2str(pFeat)])
 disp(['Prediction: ', num2str(pVal)])

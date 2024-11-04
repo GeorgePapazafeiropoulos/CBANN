@@ -24,8 +24,10 @@ xq = 2
 # (1) Related to training data:
 # Random perturbation tolerance
 pTol = 0
+# Aspect ratio
+ar=1000
 # Scaling factor
-scF = 1000
+scF = ar*(np.max(x)-np.min(x))/(np.max(y)-np.min(y))
 # Validation ratio
 tr=0.1
 # (2) Related to CBANN:
@@ -40,7 +42,7 @@ max_epochs = 2000
 nVar = x.shape[1]
 C = x * (1 + pTol * np.random.rand(*x.shape))
 C0 = C
-C1 = np.hstack((C, scF * y))
+C1 = np.hstack((C, scF * (y-np.min(y))))
 
 # Step 1.2: Cluster Boosting (CB)
 cInd = []
@@ -50,7 +52,7 @@ for i in range(len(nCl)):
     cInd_i = kmedoids.fit_predict(C1)
     cInd.append(cInd_i)
     C = np.hstack((C, cInd_i.reshape(-1, 1)))
-C = np.hstack((C, scF * y))
+C = np.hstack((C, scF * (y-np.min(y))))
 
 # Step 2.1: Divide dataset into training and validation
 n = C.shape[0]
@@ -74,7 +76,7 @@ model = Sequential([
     # Output layer with linear activation
     Dense(1, activation='linear') 
 ])
-adam = Adam(learning_rate=0.01)
+adam = Adam(learning_rate=0.02)
 model.compile(optimizer=adam, loss='mean_squared_error', metrics=['mse'])
 # Print model summary
 model.summary()
@@ -98,7 +100,7 @@ pFeat = np.hstack((xq, ind_d))
 pFeat = tf.reshape(pFeat,shape=(1,len(nCl)+1))
 
 # Step 4: Make prediction on xq
-pVal = 1 / scF * model.predict(pFeat)
+pVal = np.min(y) + 1 / scF * model.predict(pFeat)
 # Display output
 print("Input value: ", pFeat[0].numpy())
 print("Prediction: ", pVal[0])
